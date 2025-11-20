@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Kaggle Notebook Executor - Fixed Single File
-Runs every 3 minutes via cron-job.org
-"""
-
 import os
 import subprocess
 import json
@@ -21,16 +15,38 @@ SOURCE_ACCOUNT = {
     "key": "9f167cdee8a045c97ca6a2f82c6701f9"
 }
 
-DEST_ACCOUNT = {
-    "username": "distinct4exist",
-    "key": "c2767798395ca8c007e931d6f9d42752"
+# Define all available destination accounts
+DEST_ACCOUNTS = {
+    "distinct4exist": {
+        "username": "distinct4exist",
+        "key": "c2767798395ca8c007e931d6f9d42752"
+    },
+    "shreevathsaz": {
+        "username": "shreevathsaz",
+        "key": "2faa3199cb4f8a0d88a8999604ac6770"
+    }
 }
 
-# Added "new-21" to the list below
+# Map notebooks to their specific destination account keys
 NOTEBOOKS = [
-    {"source_slug": "shreevathsbbhh/new-20-1", "notebook_name": "new-20-1", "dest_slug": "distinct4exist/new-20-1"},
-    {"source_slug": "shreevathsbbhh/new-20-2", "notebook_name": "new-20-2", "dest_slug": "distinct4exist/new-20-2"},
-    {"source_slug": "shreevathsbbhh/new-21",   "notebook_name": "new-21",   "dest_slug": "distinct4exist/new-21"}
+    {
+        "source_slug": "shreevathsbbhh/new-20-1", 
+        "notebook_name": "new-20-1", 
+        "dest_slug": "distinct4exist/new-20-1",
+        "dest_account": "distinct4exist" # Runs on old account
+    },
+    {
+        "source_slug": "shreevathsbbhh/new-20-2", 
+        "notebook_name": "new-20-2", 
+        "dest_slug": "distinct4exist/new-20-2",
+        "dest_account": "distinct4exist" # Runs on old account
+    },
+    {
+        "source_slug": "shreevathsbbhh/new-21",   
+        "notebook_name": "new-21",   
+        "dest_slug": "shreevathsaz/new-21", # Updated slug for new user
+        "dest_account": "shreevathsaz"   # Runs on NEW account
+    }
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -81,13 +97,14 @@ def run_cmd(cmd, timeout=120):
 def execute_notebook(nb):
     log("═" * 70, "")
     log(f"📓 NOTEBOOK: {nb['notebook_name']}", "")
+    log(f"   Target: {nb['dest_account']}", "🎯")
     log("═" * 70, "")
     
     temp_dir = Path(f"./temp_{nb['notebook_name']}")
     original_dir = os.getcwd()
     
     try:
-        # Step 1: Pull from source
+        # Step 1: Pull from source (Always uses SOURCE_ACCOUNT)
         setup_kaggle_auth(SOURCE_ACCOUNT)
         
         if temp_dir.exists():
@@ -116,6 +133,8 @@ def execute_notebook(nb):
             metadata = json.load(f)
         
         timestamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+        
+        # Update metadata with new ID and Title
         metadata.update({
             'id': nb['dest_slug'],
             'slug': nb['notebook_name'],
@@ -127,8 +146,13 @@ def execute_notebook(nb):
         
         log(f"Metadata updated: {nb['notebook_name']}-{timestamp}", "📝")
         
-        # Step 3: Push to destination
-        setup_kaggle_auth(DEST_ACCOUNT)
+        # Step 3: Push to destination (Uses specific account from nb config)
+        target_account_key = nb.get('dest_account')
+        if target_account_key not in DEST_ACCOUNTS:
+            log(f"Unknown destination account: {target_account_key}", "❌")
+            return False
+            
+        setup_kaggle_auth(DEST_ACCOUNTS[target_account_key])
         
         os.chdir(temp_dir)
         
@@ -226,7 +250,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     log(f"🌐 Starting server on port {port}", "")
     
-    # Create kaggle config on startup to prevent import errors
+    # Initialize with source account to prevent startup errors
     setup_kaggle_auth(SOURCE_ACCOUNT)
     
     app.run(host='0.0.0.0', port=port, debug=False)
