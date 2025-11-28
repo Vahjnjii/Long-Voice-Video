@@ -33,19 +33,19 @@ NOTEBOOKS = [
         "source_slug": "shreevathsbbhh/new-20-1", 
         "notebook_name": "new-20-1", 
         "dest_slug": "distinct4exist/new-20-1",
-        "dest_account": "distinct4exist" # Runs on old account
+        "dest_account": "distinct4exist" 
     },
     {
-        "source_slug": "shreevathsbbhh/new-20-2", 
-        "notebook_name": "new-20-2", 
-        "dest_slug": "distinct4exist/new-20-2",
-        "dest_account": "distinct4exist" # Runs on old account
+        "source_slug": "shreevathsbbhh/bulk-2-7-1", 
+        "notebook_name": "bulk-2-7-1", 
+        "dest_slug": "distinct4exist/bulk-2-7-1",
+        "dest_account": "distinct4exist" 
     },
     {
-        "source_slug": "shreevathsbbhh/new-21",   
-        "notebook_name": "new-21",   
-        "dest_slug": "shreevathsaz/new-21", # Updated slug for new user
-        "dest_account": "shreevathsaz"   # Runs on NEW account
+        "source_slug": "shreevathsbbhh/bulk-2-7-2",   
+        "notebook_name": "bulk-2-7-2",   
+        "dest_slug": "shreevathsaz/bulk-2-7-2", 
+        "dest_account": "shreevathsaz"   
     }
 ]
 
