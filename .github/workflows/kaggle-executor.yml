@@ -51,27 +51,24 @@ jobs:
             }
         }
 
-        # UPDATED MAPPING: 
-        # 1st notebook -> shreevathsaz
-        # 2nd & 3rd notebooks -> distinct4exist
         NOTEBOOKS = [
             {
                 "source_slug": "shreevathsbbhh/new-20-1", 
                 "notebook_name": "new-20-1", 
-                "dest_slug": "shreevathsaz/new-20-1",   # CHANGED TO shreevathsaz
-                "dest_account": "shreevathsaz"        # CHANGED TO shreevathsaz
+                "dest_slug": "shreevathsaz/new-20-1",
+                "dest_account": "shreevathsaz"
             },
             {
                 "source_slug": "shreevathsbbhh/war-2", 
                 "notebook_name": "war-2", 
-                "dest_slug": "distinct4exist/war-2",    # REMAINING distinct4exist
+                "dest_slug": "distinct4exist/war-2",
                 "dest_account": "distinct4exist"
             },
             {
                 "source_slug": "shreevathsbbhh/war-3",   
                 "notebook_name": "war-3",   
-                "dest_slug": "distinct4exist/war-3",    # CHANGED TO distinct4exist
-                "dest_account": "distinct4exist"        # CHANGED TO distinct4exist
+                "dest_slug": "distinct4exist/war-3-v2",  # Changed slug to fix 403 error
+                "dest_account": "distinct4exist"
             }
         ]
 
@@ -155,7 +152,7 @@ jobs:
                 
                 metadata.update({
                     'id': nb['dest_slug'],
-                    'slug': nb['notebook_name'],
+                    'slug': nb['dest_slug'].split('/')[-1], # Ensure slug matches dest ID
                     'title': f"{nb['notebook_name']}-{timestamp}"
                 })
                 
