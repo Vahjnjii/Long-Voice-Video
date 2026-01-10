@@ -36,13 +36,13 @@ jobs:
 
         SOURCE_ACCOUNT = {
             "username": "shreevathsbbhh",
-            "key": "9f167cdee8a045c97ca6a2f82c6701f9"
+            "key": "83a92caa96ed51b5d5a9a730100c57aa"
         }
 
         DEST_ACCOUNTS = {
             "shreevathsbbhh": {
                 "username": "shreevathsbbhh",
-                "key": "9f167cdee8a045c97ca6a2f82c6701f9"
+                "key": "83a92caa96ed51b5d5a9a730100c57aa"
             }
         }
 
@@ -222,9 +222,6 @@ jobs:
                 log("═" * 60, "")
                 success = execute_notebook(nb)
                 results[nb['notebook_name']] = success
-                
-                log("Waiting 60 seconds before next action...", "⏳")
-                time.sleep(60)
             
             success_count = sum(results.values())
             duration = (datetime.utcnow() - start).total_seconds()
