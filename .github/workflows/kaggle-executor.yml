@@ -40,25 +40,25 @@ jobs:
         }
 
         DEST_ACCOUNTS = {
-            "vathsamm": {
-                "username": "vathsamm",
-                "key": "33fad3a4dc6d92aa70fa90b62b9ebef4"
+            "shreevathsbbhh": {
+                "username": "shreevathsbbhh",
+                "key": "9f167cdee8a045c97ca6a2f82c6701f9"
             }
         }
 
-        # UPDATED NOTEBOOKS LIST
+        # 2 NOTEBOOKS → shreevathsbbhh (same source and destination)
         NOTEBOOKS = [
             {
                 "source_slug": "shreevathsbbhh/long-google-tts-4", 
                 "notebook_name": "long-google-tts-4", 
-                "dest_slug": "vathsamm/long-google-tts-4",
-                "dest_account": "vathsamm"
+                "dest_slug": "shreevathsbbhh/long-google-tts-4",
+                "dest_account": "shreevathsbbhh"
             },
             {
                 "source_slug": "shreevathsbbhh/king-main-15", 
                 "notebook_name": "king-main-15", 
-                "dest_slug": "vathsamm/king-main-15",
-                "dest_account": "vathsamm"
+                "dest_slug": "shreevathsbbhh/king-main-15",
+                "dest_account": "shreevathsbbhh"
             }
         ]
 
@@ -68,7 +68,6 @@ jobs:
             sys.stdout.flush()
 
         def setup_kaggle_auth(account):
-            # Reverted to the original working logic
             kaggle_dir = Path.home() / ".kaggle"
             kaggle_dir.mkdir(exist_ok=True)
             kaggle_json = kaggle_dir / "kaggle.json"
@@ -77,7 +76,7 @@ jobs:
             kaggle_json.chmod(0o600)
             log(f"Auth set: {account['username']}", "🔑")
 
-        def run_cmd(cmd, timeout=300):
+        def run_cmd(cmd, timeout=180):
             try:
                 result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
                 return result.returncode == 0, result.stdout, result.stderr
@@ -103,8 +102,9 @@ jobs:
                 target_account_key = nb['dest_account']
                 dest_account = DEST_ACCOUNTS[target_account_key]
                 
-                # STEP 1: Pull from DESTINATION first
+                # STEP 1: Pull from DESTINATION first (to get correct id_no and metadata)
                 setup_kaggle_auth(dest_account)
+                time.sleep(0.3)
                 
                 log(f"Pulling destination metadata: {nb['dest_slug']}...", "📥")
                 success, stdout, stderr = run_cmd(f"kaggle kernels pull {nb['dest_slug']} -p {dest_dir} -m")
@@ -117,6 +117,7 @@ jobs:
                 
                 # STEP 2: Pull notebook code from SOURCE
                 setup_kaggle_auth(SOURCE_ACCOUNT)
+                time.sleep(0.3)
                 
                 log(f"Pulling source code: {nb['source_slug']}...", "📥")
                 success, stdout, stderr = run_cmd(f"kaggle kernels pull {nb['source_slug']} -p {source_dir} -m")
@@ -138,13 +139,17 @@ jobs:
                 
                 # STEP 3: Prepare final metadata
                 if dest_exists:
-                    # Use destination's metadata
+                    # Use destination's metadata (has correct id_no)
                     dest_metadata_file = dest_dir / "kernel-metadata.json"
                     with open(dest_metadata_file, 'r') as f:
                         metadata = json.load(f)
+                    log(f"Using dest metadata: id={metadata.get('id')}, id_no={metadata.get('id_no')}", "📝")
                     
+                    # Copy source notebook to dest directory with correct name
                     dest_notebook_name = metadata.get('code_file', f"{nb['notebook_name']}.ipynb")
                     shutil.copy(source_notebook, dest_dir / dest_notebook_name)
+                    
+                    # Update code_file reference if needed
                     metadata['code_file'] = dest_notebook_name
                     
                     with open(dest_metadata_file, 'w') as f:
@@ -152,11 +157,12 @@ jobs:
                     
                     push_dir = dest_dir
                 else:
-                    # CREATE NEW KERNEL
+                    # CREATE NEW KERNEL - set id to destination slug
                     source_metadata_file = source_dir / "kernel-metadata.json"
                     with open(source_metadata_file, 'r') as f:
                         metadata = json.load(f)
                     
+                    # FIX: Set id to dest_slug (REQUIRED for new kernels)
                     metadata['id'] = nb['dest_slug']
                     metadata.pop('id_no', None)
                     metadata['slug'] = nb['notebook_name']
@@ -166,27 +172,35 @@ jobs:
                     with open(source_metadata_file, 'w') as f:
                         json.dump(metadata, f, indent=2)
                     
+                    log(f"New kernel metadata: id={metadata['id']}, slug={metadata['slug']}", "📝")
                     push_dir = source_dir
                 
                 # STEP 4: Push to destination
                 setup_kaggle_auth(dest_account)
+                time.sleep(0.3)
                 
                 os.chdir(push_dir)
+                log(f"Directory contents: {[f.name for f in Path('.').glob('*')]}", "📂")
+                
                 log(f"Pushing...", "📤")
-                success, stdout, stderr = run_cmd("kaggle kernels push", timeout=300)
+                success, stdout, stderr = run_cmd("kaggle kernels push", timeout=240)
                 
                 os.chdir(original_dir)
                 
                 if not success:
                     log(f"PUSH FAILED", "❌")
                     log(f"Stderr: {stderr}", "")
+                    log(f"Stdout: {stdout}", "")
                     return False
                 
                 log(f"Push OK: {nb['notebook_name']}", "✅")
+                log(f"URL: https://www.kaggle.com/code/{nb['dest_slug']}", "🔗")
                 return True
                 
             except Exception as e:
                 log(f"EXCEPTION: {str(e)}", "❌")
+                import traceback
+                traceback.print_exc()
                 return False
                 
             finally:
@@ -199,6 +213,8 @@ jobs:
         def execute_all():
             start = datetime.utcnow()
             log(f"EXECUTION STARTED: {start.isoformat()}", "🚀")
+            log(f"Total notebooks: {len(NOTEBOOKS)}", "📊")
+            log(f"Destination: shreevathsbbhh", "🎯")
             
             results = {}
             
@@ -207,13 +223,14 @@ jobs:
                 success = execute_notebook(nb)
                 results[nb['notebook_name']] = success
                 
-                # Removed long wait, just 1 second to clear buffers
-                time.sleep(1)
+                log("Waiting 60 seconds before next action...", "⏳")
+                time.sleep(60)
             
             success_count = sum(results.values())
+            duration = (datetime.utcnow() - start).total_seconds()
             
             log("═" * 60, "")
-            log(f"COMPLETED: {success_count}/{len(results)}", "🏁")
+            log(f"COMPLETED: {success_count}/{len(results)} | {duration:.1f}s", "🏁")
             
             for nb_name, success in results.items():
                 log(f"{'✅' if success else '❌'} {nb_name}", "")
